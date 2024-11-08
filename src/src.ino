@@ -1,6 +1,7 @@
 #include <ECE3.h>
+#include "Corrections.hpp"
 
-#define DEBUG 1
+#define DEBUG 0
 #define NUM_SENSORS 8
 
 int sensor_mins[NUM_SENSORS] = {826, 686, 640, 709, 686, 663, 756, 663};
@@ -16,6 +17,9 @@ void setup() {
     if (DEBUG){
         Serial.begin(9600);
     }
+
+    digitalWrite(left_nslp_pin, HIGH);
+    digitalWrite(right_nslp_pin, HIGH);
 }
 
 void getNormalizedSensorValues(){
@@ -35,18 +39,26 @@ void fuseSensors(){
     }
 }
 
-void loop() {
-    // put your main code here, to run repeatedly:
-    getNormalizedSensorValues();
-    fuseSensors();
-
-    if (DEBUG){
+void log_normalized_fused_sensors(){
         for(int i = 0; i < NUM_SENSORS; i++){
             Serial.print((int)normalized_sensor_values[i]);
             Serial.print(" ");
         }
             Serial.print(fused_sensor_value);
             Serial.print("\n");
-    }
+}
+
+
+
+void loop() {
+    // put your main code here, to run repeatedly:
+    getNormalizedSensorValues();
+    fuseSensors();
+
+    float kp = -0.001f;
+    float correction = kp * fused_sensor_value;
+    make_correction((int)correction);
+
+    if (DEBUG) log_normalized_fused_sensors();
       
 }
