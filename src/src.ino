@@ -4,22 +4,32 @@
 #define DEBUG 0
 #define NUM_SENSORS 8
 
+// Global Variables
 int sensor_mins[NUM_SENSORS] = {826, 686, 640, 709, 686, 663, 756, 663};
 int sensor_max[NUM_SENSORS] = {1674, 1814, 1860, 1791, 1814, 1837, 1744, 1300};
-int fusion_weights[NUM_SENSORS] = {-15, -14, -12, -6, 8, 12, 14, 15};
+int fusion_weights[NUM_SENSORS] = {-15, -14, -12, -8, 8, 12, 14, 15};
 uint16_t sensor_values[NUM_SENSORS];
 float normalized_sensor_values[NUM_SENSORS];
-float fused_sensor_value = 0; 
+float error = 0; 
+float prev_error = 0;
+float derivative = 0;
+float integral = 0;
+int turn_state = 0;
+int left_speed = BASE_SPEED;
+int right_speed = BASE_SPEED;
+float kp = 0.015f;
+float kd = 0.025f;
 
 void setup() {
   // put your setup code here, to run once:
     ECE3_Init();
-    if (DEBUG){
-        Serial.begin(9600);
-    }
+    Serial.begin(9600);
 
     digitalWrite(left_nslp_pin, HIGH);
     digitalWrite(right_nslp_pin, HIGH);
+    digitalWrite(left_dir_pin, LOW);
+    digitalWrite(right_dir_pin, LOW);
+    delay(2000);
 }
 
 void getNormalizedSensorValues(){
@@ -33,10 +43,11 @@ void getNormalizedSensorValues(){
 }
 
 void fuseSensors(){
-    fused_sensor_value = 0;
+    error = 0;
     for(int i = 0; i < NUM_SENSORS; i++){
-        fused_sensor_value += normalized_sensor_values[i] * fusion_weights[i];
+        error += normalized_sensor_values[i] * fusion_weights[i];
     }
+    error /= 8;
 }
 
 void log_normalized_fused_sensors(){
@@ -44,7 +55,7 @@ void log_normalized_fused_sensors(){
             Serial.print((int)normalized_sensor_values[i]);
             Serial.print(" ");
         }
-            Serial.print(fused_sensor_value);
+            Serial.print(error);
             Serial.print("\n");
 }
 
@@ -55,10 +66,16 @@ void loop() {
     getNormalizedSensorValues();
     fuseSensors();
 
-    float kp = -0.001f;
-    float correction = kp * fused_sensor_value;
+    derivative = math::Derivative();
+
+    // int n = SensorsOverThreshold(700, normalized_sensor_values);
+    // if (n >= 4)turn_state++;
+    // if (turn_state == 3) turn_around();
+
+    float correction = kp * error + kd * derivative;
     make_correction((int)correction);
 
     if (DEBUG) log_normalized_fused_sensors();
-      
+
+    prev_error = error;
 }
