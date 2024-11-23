@@ -3,8 +3,8 @@
 
 #define LEFT 0
 #define RIGHT 1
-#define BASE_SPEED 20
 #define left_nslp_pin 31
+#define BASE_SPEED 40
 #define left_dir_pin 29
 #define left_pwm_pin 40
 #define right_nslp_pin 11
@@ -38,10 +38,11 @@ void make_correction(int correction){
 
 void turn_around(){
     digitalWrite(left_dir_pin, HIGH);
-    digitalWrite(left_dir_pin, LOW);
-    analogWrite(left_pwm_pin, 50);
-    analogWrite(right_pwm_pin, 50);
-    delay(500);
+    digitalWrite(right_dir_pin, LOW);
+    analogWrite(left_pwm_pin, 255);
+    analogWrite(right_pwm_pin, 255);
+    delay(250);
+    moveAcrossCrossPiece(100);
 }
 
 

@@ -13,18 +13,22 @@ float normalized_sensor_values[NUM_SENSORS];
 float error = 0; 
 float prev_error = 0;
 float derivative = 0;
-float integral = 0;
 int turn_state = 0;
+bool onCrossPiece = false;
+bool turnedAround = false;
+int crossPieceCounter = 0; 
 int left_speed = BASE_SPEED;
 int right_speed = BASE_SPEED;
-float kp = 0.015f;
-float kd = 0.025f;
+float kp = 0.03f;
+float kd = 0.05f;
 
 void setup() {
   // put your setup code here, to run once:
     ECE3_Init();
     Serial.begin(9600);
 
+    pinMode(41, OUTPUT);
+    pinMode(57, OUTPUT);
     digitalWrite(left_nslp_pin, HIGH);
     digitalWrite(right_nslp_pin, HIGH);
     digitalWrite(left_dir_pin, LOW);
@@ -68,9 +72,24 @@ void loop() {
 
     derivative = math::Derivative();
 
-    // int n = SensorsOverThreshold(700, normalized_sensor_values);
-    // if (n >= 4)turn_state++;
-    // if (turn_state == 3) turn_around();
+    int n = SensorsOverThreshold(700, normalized_sensor_values);
+    if (n >= 6 && !onCrossPiece)crossPieceCounter++;
+    else if (n < 6 && onCrossPiece)onCrossPiece = false;
+    if (crossPieceCounter == 2){
+        onCrossPiece = true;
+        turn_state++;
+        crossPieceCounter = 0;
+        digitalWrite(41, HIGH);
+        moveAcrossCrossPiece(100);
+    }else digitalWrite(41, LOW);
+    if (turn_state == 3 && !turnedAround){
+        digitalWrite(57, HIGH);
+        turn_around();
+        turnedAround = true;
+    }else if (turn_state == 6){
+        digitalWrite(left_nslp_pin, LOW);
+        digitalWrite(right_nslp_pin, LOW);
+    }
 
     float correction = kp * error + kd * derivative;
     make_correction((int)correction);
